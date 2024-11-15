@@ -21,36 +21,83 @@ import 'package:pdf/widgets.dart' as pw
 import '../options/font_data.dart';
 import 'color.dart';
 
+class FontBunldle {
+  final pw.Font? font;
+  final pw.Font? fontNormal;
+  final pw.Font? fontBold;
+  final pw.Font? fontItalic;
+  final pw.Font? fontBoldItalic;
+
+  FontBunldle(
+      {this.font,
+      this.fontNormal,
+      this.fontBold,
+      this.fontItalic,
+      this.fontBoldItalic});
+}
+
 extension TextStyleConverter on TextStyle {
   Future<pw.TextStyle> toPdfTextStyle(FontData fontData) async {
-    pw.Font? font = fontFamily != null 
-      ? await resolveFont(fontFamily!, fontData)
-      : null;
+    FontBunldle? fontBundle = fontFamily != null
+        ? await resolveFontBundle(fontFamily!, fontData)
+        : null;
     return pw.TextStyle(
-        color: color?.toPdfColor(),
-        fontSize: fontSize,
-        fontStyle: fontStyle?.toPdfFontStyle(),
-        fontWeight: fontWeight?.toPdfFontWeight(),
-        height: height,
-        letterSpacing: letterSpacing,
-        wordSpacing: wordSpacing,
-        decoration: decoration?.toPdfTextDecoration(),
-        decorationColor: decorationColor?.toPdfColor(),
-        decorationStyle: decorationStyle?.toPdfTextDecorationStyle(),
-        decorationThickness: decorationThickness,
-        inherit: !inherit && font == null ? true : inherit,
+      color: color?.toPdfColor(),
+      fontSize: fontSize,
+      fontStyle: fontStyle?.toPdfFontStyle(),
+      fontWeight: fontWeight?.toPdfFontWeight(),
+      height: height,
+      letterSpacing: letterSpacing,
+      wordSpacing: wordSpacing,
+      decoration: decoration?.toPdfTextDecoration(),
+      decorationColor: decorationColor?.toPdfColor(),
+      decorationStyle: decorationStyle?.toPdfTextDecorationStyle(),
+      decorationThickness: decorationThickness,
+      inherit: !inherit && fontBundle == null ? true : inherit,
+      font: fontBundle?.font,
+      fontNormal: fontBundle?.fontNormal,
+      fontBold: fontBundle?.fontBold,
+      fontItalic: fontBundle?.fontItalic,
+      fontBoldItalic: fontBundle?.fontBoldItalic,
+      fontFallback: fontFamilyFallback != null
+          ? (await Future.wait(fontFamilyFallback!
+                  .map((String font) => resolveFont(font, fontData))))
+              .whereType<pw.Font>()
+              .toList()
+          : [],
+      background: backgroundColor != null
+          ? pw.BoxDecoration(
+              color: backgroundColor!.toPdfColor(),
+            )
+          : null,
+    );
+  }
+
+  Future<FontBunldle?> resolveFontBundle(
+      String fontFamily, FontData fontData) async {
+    if (!fontData.ttfFonts.containsKey(fontFamily)) {
+      return null;
+    }
+    final String fontPath = '${fontData.ttfFonts[fontFamily]!}Regular.ttf';
+    final String fontPathNormal =
+        '${fontData.ttfFonts[fontFamily]!}Regular.ttf';
+    final String fontPathBold = '${fontData.ttfFonts[fontFamily]!}Bold.ttf';
+    final String fontPathItalic = '${fontData.ttfFonts[fontFamily]!}Italic.ttf';
+    final String fontPathBoldItalic =
+        '${fontData.ttfFonts[fontFamily]!}BoldItalic.ttf';
+
+    pw.Font? font = await resolveFont(fontPath, fontData);
+    pw.Font? fontNormal = await resolveFont(fontPathNormal, fontData);
+    pw.Font? fontBold = await resolveFont(fontPathBold, fontData);
+    pw.Font? fontItalic = await resolveFont(fontPathItalic, fontData);
+    pw.Font? fontBoldItalic = await resolveFont(fontPathBoldItalic, fontData);
+
+    return FontBunldle(
         font: font,
-        fontFallback: fontFamilyFallback != null
-            ? (await Future.wait(fontFamilyFallback!
-                .map((String font) => resolveFont(font, fontData))))
-                .whereType<pw.Font>().toList()
-            : [],
-        background: backgroundColor != null
-            ? pw.BoxDecoration(
-                color: backgroundColor!.toPdfColor(),
-              )
-            : null,
-      );
+        fontNormal: fontNormal,
+        fontBold: fontBold,
+        fontItalic: fontItalic,
+        fontBoldItalic: fontBoldItalic);
   }
 
   Future<pw.Font?> resolveFont(String font, FontData fontData) async {
